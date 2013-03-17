@@ -22,6 +22,23 @@ namespace PRCommon {
             return b;
         }
 
+        public static double Variance(this List<double> data) {
+            int items = data.Count();
+            int i;
+            double variance;
+            double[] deviation = new double[items];
+
+            double mean = data.Average();
+
+            for (i = 0; i < items; i++) {
+                deviation[i] = Math.Abs((data[i] - mean));
+            }
+            variance = deviation.Average();
+
+            return variance;
+        }
+
+
         public static Dictionary<string, double> Normalize(this Dictionary<string, double> dict, double totalVal = int.MinValue) {
             if (totalVal == int.MinValue) {
                 totalVal = dict.Sum(i => i.Value);

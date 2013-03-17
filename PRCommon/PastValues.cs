@@ -26,6 +26,14 @@ namespace PRCommon {
             return pastDisances.Compare(distance);
         }
 
+        public double Compare2(List<double> list) {
+            double prod = 1;
+            for (int i = 0; i < list.Count(); i++) {
+                prod *= this[i].Compare(list[i]);
+            }
+            return prod;
+        }
+
         public List<double> AveragePosition() {
             List<double> vec = new List<double>();
             foreach (var a in this) {

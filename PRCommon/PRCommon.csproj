@@ -44,8 +44,9 @@
   <ItemGroup>
     <Compile Include="EvalFunc.cs" />
     <Compile Include="FeatureSuccess.cs" />
+    <Compile Include="GradientEval.cs" />
     <Compile Include="InputLoader.cs" />
-    <Compile Include="OptmizerBase.cs" />
+    <Compile Include="Feature.cs" />
     <Compile Include="PastValues.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Util.cs" />

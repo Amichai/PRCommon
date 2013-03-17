@@ -22,7 +22,9 @@ namespace PRCommon {
 
         public double Interestingness {
             get {
-                return this.SuccessRate.Overall.LastN();
+                //return this.SuccessRate.SuccessRate.Select(i => i.Value.Average()).Max();
+                return this.SuccessRate.LabelSuccess.Select(i => i.Value.LastN()).Average();
+                //return this.SuccessRate.Overall.LastN();
             }
         }
 
@@ -34,7 +36,8 @@ namespace PRCommon {
 
         public int NumberOfPoints {
             get {
-                return Func.GetPoints().Count();
+                return 1;
+                //return Func.GetPoints().Count();
             }
         }
 
@@ -56,14 +59,16 @@ namespace PRCommon {
 
         public double? Attractiveness {
             get {
-                List<double> localVars = new List<double>();
-                PastValuesVec centers = new PastValuesVec();
+                //List<double> localVars = new List<double>();
+                List<double> centers = new List<double>();
                 foreach (var a in PastEvals) {
-                    var sd = a.Value.Variance();
-                    localVars.Add(sd);
-                    centers.Add(a.Value.AveragePosition());
+                    //var sd = a.Value.Variance();
+                    //localVars.Add(sd);
+                    centers.Add(a.Value.AveragePosition().Average());
                 }
-                return (centers.Variance()) / (localVars.Average() + 1e-6);
+                //return (centers.Variance()) / (localVars.Average() + 1e-6);
+                //return centers.Select(i => Math.Abs(i)).Average();
+                return centers.Variance();
 
                 //return 0;
 
@@ -105,10 +110,15 @@ namespace PRCommon {
             if (PastEvals == null) return null;
             foreach (var a in PastEvals) {
                 var compareVal = a.Value.Compare(this.LastEval);
+                ///Not working for some reason
+                //if (SuccessRate.LabelSuccess.ContainsKey(a.Key)
+                //    && SuccessRate.LabelSuccess[a.Key].Count() > 2) {
+                //    compareVal *= (SuccessRate.LabelSuccess[a.Key].LastN() * 10);
+                //}
                 LabelCertainty[a.Key] = compareVal;
                 totalVal += compareVal;
             }
-            if (totalVal == 0) return LabelCertainty;
+            if (totalVal == 0) return null;
             return LabelCertainty.Normalize(totalVal);
         }
 

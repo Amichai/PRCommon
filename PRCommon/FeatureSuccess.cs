@@ -33,6 +33,7 @@ namespace PRCommon {
         public void Trial(string label, Dictionary<string, double> probabilities) {
             if (!probabilities.ContainsKey(label)) return;
             this.BestGuess = bestGuess(probabilities);
+            this.TrialCounter++;
             if (SuccessRate.ContainsKey(label)) {
                 SuccessRate[label].Add(probabilities[label]);
             } else {
@@ -54,7 +55,6 @@ namespace PRCommon {
                 LabelSuccess[label].Add(false);
                 LabelSuccess[BestGuess].Add(false);
             }
-            this.TrialCounter++;
         }
 
         public override string ToString() {
@@ -72,15 +72,20 @@ namespace PRCommon {
     }
     public class PastTrials {
         List<bool> results;
-        public int Count { get; set; }
+        private int count { get; set; }
+
+        public int Count() {
+            return results.Count();
+        }
+
         public PastTrials(int count = 100) {
             this.results = new List<bool>(count);
-            this.Count = count;
+            this.count = count;
         }
 
         public void Add(bool result) {
             this.results.Add(result);
-            if (results.Count() > Count) {
+            if (results.Count() > count) {
                 results.RemoveAt(0);
             }
         }

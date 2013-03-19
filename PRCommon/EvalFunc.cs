@@ -188,4 +188,110 @@ namespace PRCommon {
 
         public Func<int[][], List<double>> Eval { get; set; }
     }
+
+    public class PixelProd : EvalBase, IEvalFunc {
+        List<IntPoint> Points { get; set; }
+
+        public List<IntPoint> GetPoint() {
+            return Points.Take(1).ToList();
+        }
+
+        public List<IntPoint> GetPoints() {
+            var pts = Points;
+            pts.AddRange(Ref.GetPoints());
+            return pts;
+        }
+
+        public PixelProd(List<IntPoint> points) {
+            ///CHeck that all the points are unique and delete duplicates
+            this.Points = points;
+            if (points.Count() > 1) throw new Exception();
+            this.Eval = i => sumEval(i, points);
+        }
+
+        public IEvalFunc Ref { get; set; }
+
+        private List<double> sumEval(int[][] input, List<IntPoint> pts) {
+            if (pts.Count() > 1) {
+                pts = pts.Take(1).ToList();
+                //throw new Exception();
+            }
+
+
+            double output = 1;
+            foreach (var p in pts) {
+                double refEval;
+                if (HashedResults.ContainsKey(Ref.Eval)) {
+                    refEval = HashedResults[Ref.Eval].Average();
+                } else {
+                    refEval = Ref.Eval(input).Average();
+                }
+                output = refEval * input[p.X][p.Y];
+            }
+            var vec = new List<double>() { output };
+            HashedResults[Eval] = vec;
+            return vec;
+        }
+
+        public Func<int[][], List<double>> Eval { get; set; }
+    }
+
+    public class PixelProjection : EvalBase, IEvalFunc {
+        List<IntPoint> Points { get; set; }
+
+        public List<IntPoint> GetPoint() {
+            return Points.Take(1).ToList();
+        }
+
+        public List<IntPoint> GetPoints() {
+            var pts = Points;
+            pts.AddRange(Ref.GetPoints());
+            return pts;
+        }
+
+        private static Random rand = new Random();
+
+        public PixelProjection(List<IntPoint> points) {
+            ///CHeck that all the points are unique and delete duplicates
+            this.Points = points;
+            if (points.Count() > 1) throw new Exception();
+            this.Eval = i => projEval(i, points);
+            this.weight = rand.NextDouble();
+        }
+
+        private double weight;
+
+        public IEvalFunc Ref { get; set; }
+        public IEvalFunc Ref2 { get; set; }
+
+        private List<double> projEval(int[][] input, List<IntPoint> pts) {
+            if (pts.Count() > 1) {
+                pts = pts.Take(1).ToList();
+            }
+
+            double output = 1;
+            foreach (var p in pts) {
+                double refEval;
+                double ref2Eval;
+                if (HashedResults.ContainsKey(Ref.Eval)) {
+                    refEval = HashedResults[Ref.Eval].Average();
+                } else {
+                    refEval = Ref.Eval(input).Average();
+                }
+
+                if (HashedResults.ContainsKey(Ref2.Eval)) {
+                    ref2Eval = HashedResults[Ref2.Eval].Average();
+                } else {
+                    ref2Eval = Ref2.Eval(input).Average();
+                }
+                output = this.weight * refEval +
+                    (1 - this.weight) * ref2Eval;
+            }
+            var vec = new List<double>() { output };
+            HashedResults[Eval] = vec;
+            return vec;
+        }
+
+        public Func<int[][], List<double>> Eval { get; set; }
+    }
 }

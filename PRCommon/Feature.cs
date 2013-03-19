@@ -126,6 +126,22 @@ namespace PRCommon {
         public Dictionary<string, PastValuesVec> PastEvals { get; set; }
 
         public void Train(string label) {
+            if (LastEval == null) {
+                return;
+            }
+            if (PastEvals.ContainsKey(label)) {
+                PastEvals[label].Add(LastEval);
+            } else {
+                PastEvals[label] = new PastValuesVec(LastEval);
+            }
+            if (!LabelCertainty.ContainsKey(label)) return;
+            this.SuccessRate.Trial(label, LabelCertainty);
+        }
+
+        public void Train(string label, int[][] input) {
+            if (LastEval == null) {
+                this.LastEval = Func.Eval(input);
+            }
             if (PastEvals.ContainsKey(label)) {
                 PastEvals[label].Add(LastEval);
             } else {

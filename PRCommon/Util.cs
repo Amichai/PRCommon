@@ -49,6 +49,29 @@ namespace PRCommon {
             return dict;
         }
 
+        public static Dictionary<string, double> Normalize(this Dictionary<string, int> dict, double totalVal = int.MinValue) {
+            var output = new Dictionary<string, double>();
+            if (totalVal == int.MinValue) {
+                totalVal = dict.Sum(i => i.Value);
+            }
+            foreach (var a in dict.Keys.ToList()) {
+                output[a] = dict[a] / (double)totalVal;
+            }
+            return output;
+        }
+
+        public static string MaxLabel(this Dictionary<string, int> dict) {
+            string maxLabel = "";
+            int maxVal = int.MinValue;
+            foreach (var a in dict) {
+                if (a.Value > maxVal) {
+                    maxVal = a.Value;
+                    maxLabel = a.Key;
+                }
+            }
+            return maxLabel;
+        }
+
         public static double Sqrd(this double val) {
             return Math.Pow(val, 2);
         }

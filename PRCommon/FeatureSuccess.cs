@@ -31,7 +31,7 @@ namespace PRCommon {
         public int TrialCounter { get; set; }
 
         public void Trial(string label, Dictionary<string, double> probabilities) {
-            if (!probabilities.ContainsKey(label)) return;
+            if (probabilities == null || !probabilities.ContainsKey(label)) return;
             this.BestGuess = bestGuess(probabilities);
             this.TrialCounter++;
             if (SuccessRate.ContainsKey(label)) {

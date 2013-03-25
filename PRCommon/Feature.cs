@@ -101,10 +101,10 @@ namespace PRCommon {
             }
         }
         
-        public IEvalFunc Func { get; set; }
+        public IEvalFunc Projection { get; set; }
         public Dictionary<string, double> LabelCertainty { get; set; }
         public Dictionary<string, double> Test(int[][] input) {
-            this.LastEval = Func.Eval(input);
+            this.LastEval = Projection.Eval(input);
             double totalVal = 0;
             this.LabelCertainty = new Dictionary<string, double>();
             if (PastEvals == null) return null;
@@ -140,14 +140,14 @@ namespace PRCommon {
 
         public void Train(string label, int[][] input) {
             if (LastEval == null) {
-                this.LastEval = Func.Eval(input);
+                this.LastEval = Projection.Eval(input);
             }
             if (PastEvals.ContainsKey(label)) {
                 PastEvals[label].Add(LastEval);
             } else {
                 PastEvals[label] = new PastValuesVec(LastEval);
             }
-            if (!LabelCertainty.ContainsKey(label)) return;
+            if (LabelCertainty == null || !LabelCertainty.ContainsKey(label)) return;
             this.SuccessRate.Trial(label, LabelCertainty);
         }
     }

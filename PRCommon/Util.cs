@@ -22,6 +22,19 @@ namespace PRCommon {
             return b;
         }
 
+        public static string BestGuess(this Dictionary<string, double> prob) {
+            double bestEval = 0;
+            string bestGuess = null;
+            if (prob == null) return null;
+            foreach (var p in prob) {
+                if (p.Value > bestEval) {
+                    bestEval = p.Value;
+                    bestGuess = p.Key;
+                }
+            }
+            return bestGuess;
+        }
+
         public static double Variance(this List<double> data) {
             int items = data.Count();
             int i;
@@ -43,6 +56,7 @@ namespace PRCommon {
             if (totalVal == int.MinValue) {
                 totalVal = dict.Sum(i => i.Value);
             }
+            if (totalVal == 0) return null;
             foreach (var a in dict.Keys.ToList()) {
                 dict[a] /= totalVal;
             }

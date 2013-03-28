@@ -16,23 +16,11 @@ namespace PRCommon {
         public Dictionary<string, PastValues> SuccessRate { get; set; }
         public string BestGuess { get; set; }
 
-        private string bestGuess(Dictionary<string, double> prob) {
-            double bestEval = 0;
-            string bestGuess = "";
-            foreach (var p in prob) {
-                if (p.Value > bestEval) {
-                    bestEval = p.Value;
-                    bestGuess = p.Key;
-                }
-            }
-            return bestGuess;
-        }
-
         public int TrialCounter { get; set; }
 
-        public void Trial(string label, Dictionary<string, double> probabilities) {
+        public void Trial(string label, Dictionary<string, double> probabilities, string guess) {
             if (probabilities == null || !probabilities.ContainsKey(label)) return;
-            this.BestGuess = bestGuess(probabilities);
+            this.BestGuess = guess;
             this.TrialCounter++;
             if (SuccessRate.ContainsKey(label)) {
                 SuccessRate[label].Add(probabilities[label]);
@@ -48,12 +36,14 @@ namespace PRCommon {
                 LabelSuccess[label].Add(true);
             } else {
                 Overall.Add(false);
-                if (!LabelSuccess.ContainsKey(BestGuess)) {
-                    LabelSuccess[BestGuess] = new PastTrials();
-                }
-
                 LabelSuccess[label].Add(false);
-                LabelSuccess[BestGuess].Add(false);
+
+                if (BestGuess != null) {
+                    if (!LabelSuccess.ContainsKey(BestGuess)) {
+                        LabelSuccess[BestGuess] = new PastTrials();
+                    }
+                    LabelSuccess[BestGuess].Add(false);
+                }
             }
         }
 

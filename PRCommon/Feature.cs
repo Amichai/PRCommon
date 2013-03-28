@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MyLogger;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,15 +11,19 @@ namespace PRCommon {
 
         private static int creationCounter = 0;
 
+        Feature boosterFeature = null;
+
         public Feature() {
-            this.PastEvals = new Dictionary<string, PastValuesVec>();
+            this.LastEval = null;
+            this.PastEvals = new Dictionary<string, PastValues>();
             this.SuccessRate = new FeatureSuccess();
             this.CreationIndex = creationCounter++;
+            this.useBoosterFeautre = Logger.Inst.GetBool("UseBoosterFeature");
         }
 
         public FeatureSuccess SuccessRate { get; set; }
 
-        List<double> LastEval { get; set; }
+        double? LastEval { get; set; }
 
         public double Interestingness {
             get {
@@ -36,8 +41,8 @@ namespace PRCommon {
 
         public int NumberOfPoints {
             get {
-                return 1;
-                //return Func.GetPoints().Count();
+                //return 1;
+                return Projection.PointCount();
             }
         }
 
@@ -50,7 +55,7 @@ namespace PRCommon {
         public bool Trained(int thresholdVal = 5) {
             if (PastEvals.Count() == 0) return false;
             foreach (var a in PastEvals) {
-                if (a.Value[0].Count < thresholdVal) {
+                if (a.Value.Count < thresholdVal) {
                     return false;
                 }
             }
@@ -64,7 +69,7 @@ namespace PRCommon {
                 foreach (var a in PastEvals) {
                     //var sd = a.Value.Variance();
                     //localVars.Add(sd);
-                    centers.Add(a.Value.AveragePosition().Average());
+                    centers.Add(a.Value.Average());
                 }
                 //return (centers.Variance()) / (localVars.Average() + 1e-6);
                 //return centers.Select(i => Math.Abs(i)).Average();
@@ -81,10 +86,12 @@ namespace PRCommon {
                     for (int j = 0; j < allLabels.Count(); j++) {
                         if (i == j) continue;
                         string l2 = allLabels[j];
-                        var dist = PastEvals[l1].Distance(PastEvals[l2].Select(k => k.Average()).ToList());
+                        var dist = PastEvals[l1].Average() - PastEvals[l2].Average();
+                            
+                            //.Distance(PastEvals[l2].Select(k => k.Average()).ToList());
                         distanceBetweenNodes.Add(dist);
                     }
-                    characteristicDistances.Add(PastEvals[l1].Variance());
+                    characteristicDistances.Add(PastEvals[l1].Moment(1));
                 }
                 if (characteristicDistances.Count() == 0
                     || distanceBetweenNodes.Count() == 0) {
@@ -109,7 +116,7 @@ namespace PRCommon {
             this.LabelCertainty = new Dictionary<string, double>();
             if (PastEvals == null) return null;
             foreach (var a in PastEvals) {
-                var compareVal = a.Value.Compare(this.LastEval);
+                var compareVal = a.Value.Compare(this.LastEval.Value);
                 ///Not working for some reason
                 //if (SuccessRate.LabelSuccess.ContainsKey(a.Key)
                 //    && SuccessRate.LabelSuccess[a.Key].Count() > 2) {
@@ -117,38 +124,81 @@ namespace PRCommon {
                 //}
                 LabelCertainty[a.Key] = compareVal;
                 totalVal += compareVal;
+
+            }
+            if (this.boosterFeature != null && this.boosterFeature.IsTrained) {
+                foreach (var a in this.boosterFeature.BoosterTest(input, this.LastEval)) {
+                    LabelCertainty[a.Key] += a.Value;
+                    totalVal += a.Value;
+                }
             }
             if (totalVal == 0) return null;
-            return LabelCertainty.Normalize(totalVal);
+            var normalized = LabelCertainty.Normalize(totalVal);
+            return normalized;
         }
 
+        private Dictionary<string, double> BoosterTest(int[][] input, double? lastEval) {
+            this.LastEval = lastEval;
+            this.LabelCertainty = new Dictionary<string, double>();
+            if (PastEvals == null) return null;
+            foreach (var a in PastEvals) {
+                var compareVal = a.Value.Compare(this.LastEval.Value);
+                LabelCertainty[a.Key] = compareVal;
+            }
+            return LabelCertainty;
+        }
 
-        public Dictionary<string, PastValuesVec> PastEvals { get; set; }
+        public Dictionary<string, PastValues> PastEvals { get; set; }
 
         public void Train(string label) {
             if (LastEval == null) {
                 return;
             }
             if (PastEvals.ContainsKey(label)) {
-                PastEvals[label].Add(LastEval);
+                PastEvals[label].Add(LastEval.Value);
             } else {
-                PastEvals[label] = new PastValuesVec(LastEval);
+                PastEvals[label] = new PastValues(LastEval.Value);
             }
             if (!LabelCertainty.ContainsKey(label)) return;
-            this.SuccessRate.Trial(label, LabelCertainty);
+            string guess = LabelCertainty.BestGuess();
+            if (guess != null && this.IsTrained && guess != label && useBoosterFeautre) {
+                if (boosterFeature == null) {
+                    boosterFeature = new Feature();
+                }
+                boosterFeature.Train(guess, LastEval);
+            }
+            this.SuccessRate.Trial(label, LabelCertainty, guess);
         }
 
+        private bool useBoosterFeautre;
+
+        private void Train(string label, double? lastEval) {
+            this.LastEval = lastEval;
+            if (LastEval == null) {
+                return;
+            }
+            if (PastEvals.ContainsKey(label)) {
+                PastEvals[label].Add(LastEval.Value);
+            } else {
+                PastEvals[label] = new PastValues(LastEval.Value);
+            }
+        }
+
+        /// <summary>
+        /// Not currently used
+        /// </summary>
         public void Train(string label, int[][] input) {
             if (LastEval == null) {
                 this.LastEval = Projection.Eval(input);
             }
             if (PastEvals.ContainsKey(label)) {
-                PastEvals[label].Add(LastEval);
+                PastEvals[label].Add(LastEval.Value);
             } else {
-                PastEvals[label] = new PastValuesVec(LastEval);
+                PastEvals[label] = new PastValues(LastEval.Value);
             }
             if (LabelCertainty == null || !LabelCertainty.ContainsKey(label)) return;
-            this.SuccessRate.Trial(label, LabelCertainty);
+            string guess = LabelCertainty.BestGuess();
+            this.SuccessRate.Trial(label, LabelCertainty, guess);
         }
     }
 }

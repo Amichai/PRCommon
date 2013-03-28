@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace PRCommon {
     public class PastValuesVec : List<PastValues> {
-        PastValues pastDisances = new PastValues();
+        PastValues pastDistances = new PastValues();
         public PastValuesVec(List<double> eval) {
             for(int i=0; i< eval.Count(); i++){
                 this.Add(new PastValues(eval[i]));
@@ -16,14 +16,14 @@ namespace PRCommon {
         public PastValuesVec() { }
 
         public double Variance() {
-            return pastDisances.Average();
+            return pastDistances.Average();
         }
 
         public double Compare(List<double> list) {
             if (list.Count() != this.Count()) throw new Exception();
             var distance = this.Distance(list);
-            if (pastDisances.Count < 1) return 0;
-            return pastDisances.Compare(distance);
+            if (pastDistances.Count < 1) return 0;
+            return pastDistances.Compare(distance);
         }
 
         public double Compare2(List<double> list) {
@@ -63,7 +63,7 @@ namespace PRCommon {
                 this[i].Add(list[i]);
             }
             var distance = this.Distance(list);
-            pastDisances.Add(distance);
+            pastDistances.Add(distance);
         }
     }
 

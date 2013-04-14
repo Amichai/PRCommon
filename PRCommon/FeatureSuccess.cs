@@ -38,7 +38,7 @@ namespace PRCommon {
                 Overall.Add(false);
                 LabelSuccess[label].Add(false);
 
-                if (BestGuess != null) {
+                if (BestGuess != null) { 
                     if (!LabelSuccess.ContainsKey(BestGuess)) {
                         LabelSuccess[BestGuess] = new PastTrials();
                     }
@@ -61,6 +61,8 @@ namespace PRCommon {
         public Dictionary<string, PastTrials> LabelSuccess;
     }
     public class PastTrials {
+        private Monoticity monoticity { get; set; }
+
         List<bool> results;
         private int count { get; set; }
 
@@ -71,6 +73,7 @@ namespace PRCommon {
         public PastTrials(int count = 100) {
             this.results = new List<bool>(count);
             this.count = count;
+            this.monoticity = new Monoticity();
         }
 
         public void Add(bool result) {
@@ -78,6 +81,7 @@ namespace PRCommon {
             if (results.Count() > count) {
                 results.RemoveAt(0);
             }
+            this.monoticity.Add(this.LastN());
         }
 
         public double LastN2 {
@@ -86,6 +90,18 @@ namespace PRCommon {
             }
             set {
 
+            }
+        }
+
+        public double Max {
+            get {
+                return monoticity.Max();
+            }
+        }
+
+        public double Monoticity {
+            get {
+                return monoticity.Get();
             }
         }
 

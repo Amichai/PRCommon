@@ -52,13 +52,13 @@ namespace PRCommon {
         }
 
 
-        public static Dictionary<string, double> Normalize(this Dictionary<string, double> dict, double totalVal = int.MinValue) {
-            if (totalVal == int.MinValue) {
+        public static Dictionary<string, double> Normalize(this Dictionary<string, double> dict, double? totalVal) {
+            if (totalVal == null) {
                 totalVal = dict.Sum(i => i.Value);
             }
             if (totalVal == 0) return null;
             foreach (var a in dict.Keys.ToList()) {
-                dict[a] /= totalVal;
+                dict[a] /= totalVal.Value;
             }
             return dict;
         }

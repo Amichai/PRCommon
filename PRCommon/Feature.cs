@@ -14,8 +14,6 @@ namespace PRCommon {
 
         private static Random rand = new Random();
 
-        Feature boosterFeature = null;
-
         public enum FType { PixelEval, unknown, PixelDiff, PixelProjection, SymmetricalPixelDiff, PixelSum, PixelQuot, SymmetricalPixelQuot, PixelProd, SymmetricalPixelSum }
 
         public FType FeatureType { get; set; }
@@ -26,7 +24,7 @@ namespace PRCommon {
             this.PastEvals = new Dictionary<string, PastValues>();
             this.SuccessRate = new FeatureSuccess();
             this.CreationIndex = creationCounter++;
-            this.useBoosterFeautre = Logger.Inst.GetBool("UseBoosterFeature");
+            this.onlyTrainOnFailure = Logger.Inst.GetBool("OnlyTrainOnFailure");
             if (Logger.Inst.GetString("compareValExponent") == "random") {
                 this.compareValExponent = rand.Next(0, 2) + rand.NextDouble();
             } else {
@@ -100,8 +98,8 @@ namespace PRCommon {
                         if (i == j) continue;
                         string l2 = allLabels[j];
                         var dist = PastEvals[l1].Average() - PastEvals[l2].Average();
-                            
-                            //.Distance(PastEvals[l2].Select(k => k.Average()).ToList());
+
+                        //.Distance(PastEvals[l2].Select(k => k.Average()).ToList());
                         distanceBetweenNodes.Add(dist);
                     }
                     characteristicDistances.Add(PastEvals[l1].Moment(1));
@@ -109,7 +107,7 @@ namespace PRCommon {
                 if (characteristicDistances.Count() == 0
                     || distanceBetweenNodes.Count() == 0) {
                     //throw new Exception();
-                        return null;
+                    return null;
                 }
 
                 var denom = characteristicDistances.Average();
@@ -122,7 +120,7 @@ namespace PRCommon {
         }
 
         private double? compareValExponent = null;
-        
+
         public IEvalFunc Projection { get; set; }
         public Dictionary<string, double> LabelCertainty { get; set; }
         public Dictionary<string, double> Test(int[][] input) {
@@ -145,12 +143,6 @@ namespace PRCommon {
                 totalVal += compareVal;
 
             }
-            if (this.boosterFeature != null && this.boosterFeature.IsTrained) {
-                foreach (var a in this.boosterFeature.BoosterTest(input, this.LastEval)) {
-                    LabelCertainty[a.Key] += Math.Log(a.Value + .001);
-                    //totalVal += a.Value;
-                }
-            }
             if (totalVal == 0) return null;
             var normalized = LabelCertainty.Normalize(totalVal);
             return normalized;
@@ -169,29 +161,29 @@ namespace PRCommon {
 
         public Dictionary<string, PastValues> PastEvals { get; set; }
 
+        private bool onlyTrainOnFailure;
+
         public void Train(string label, int[][] input) {
             if (LastEval == null) {
                 return;
             }
-            if (PastEvals.ContainsKey(label)) {
-                PastEvals[label].Add(LastEval.Value);
-            } else {
-                PastEvals[label] = new PastValues(LastEval.Value);
+
+            string guess = "";
+            if (LabelCertainty.ContainsKey(label)) {
+                guess = LabelCertainty.BestGuess();
+                this.SuccessRate.Trial(label, LabelCertainty, guess);
             }
 
-            if (!LabelCertainty.ContainsKey(label)) return;
-            string guess = LabelCertainty.BestGuess();
-            if (guess != null && this.IsTrained && guess != label && useBoosterFeautre) {
-                if (boosterFeature == null) {
-                    boosterFeature = new Feature();
+            if (guess != label) {
+                if (PastEvals.ContainsKey(label)) {
+                    PastEvals[label].Add(LastEval.Value);
+                } else {
+                    PastEvals[label] = new PastValues(LastEval.Value);
                 }
-                boosterFeature.Train(guess, LastEval);
+            } else {
+
             }
-
-            this.SuccessRate.Trial(label, LabelCertainty, guess);
         }
-
-        private bool useBoosterFeautre;
 
         private void Train(string label, double? lastEval) {
             this.LastEval = lastEval;

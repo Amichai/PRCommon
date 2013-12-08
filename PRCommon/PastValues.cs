@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace PRCommon {
     public class PastValuesVec : List<PastValues> {
@@ -112,5 +113,23 @@ namespace PRCommon {
         }
         ///Rolling standard deviation
         ///Rolling moments, etc.
+
+        private XElement serializeMoment() {
+            var moment = new XElement("Moment");
+            moment.Add(new XAttribute("Count", Count));
+            moment.Add(new XAttribute("Sum", Sum));
+            return moment;
+        }
+
+        internal XElement Serialize() {
+            var root = new XElement("PastValues");
+            PastValues inspection = this;
+            while (inspection != null) {
+                var moment = inspection.serializeMoment();
+                root.Add(moment);
+                inspection = inspection.differencesFromMean;
+            }
+            return root;
+        }
     }
 }

@@ -21,6 +21,18 @@ namespace PRCommon   {
             set { lines = value; }
         }
 
+        public int Width {
+            get {
+                return 28;
+            }
+        }
+
+        public int Height {
+            get {
+                return 28;
+            }
+        }
+
         public void LoadFile(string filename) {
             this.Filename = filename;
             this.Lines = File.ReadAllLines(filename);

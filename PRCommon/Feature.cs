@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace PRCommon {
     public class Feature {
@@ -14,7 +15,7 @@ namespace PRCommon {
 
         private static Random rand = new Random();
 
-        public enum FType { PixelEval, unknown, PixelDiff, PixelProjection, SymmetricalPixelDiff, PixelSum, PixelQuot, SymmetricalPixelQuot, PixelProd, SymmetricalPixelSum }
+        public enum FType { PixelEval, unknown, PixelDiff, PixelProjection, SymmetricalPixelDiff, PixelSum, PixelQuot, SymmetricalPixelQuot, PixelProd, SymmetricalPixelSum, PixelProjectionVarLength }
 
         public FType FeatureType { get; set; }
 
@@ -24,7 +25,6 @@ namespace PRCommon {
             this.PastEvals = new Dictionary<string, PastValues>();
             this.SuccessRate = new FeatureSuccess();
             this.CreationIndex = creationCounter++;
-            this.onlyTrainOnFailure = Logger.Inst.GetBool("OnlyTrainOnFailure");
             if (Logger.Inst.GetString("compareValExponent") == "random") {
                 this.compareValExponent = rand.Next(0, 2) + rand.NextDouble();
             } else {
@@ -32,15 +32,35 @@ namespace PRCommon {
             }
         }
 
+        public void Serialize() {
+            ///TODO: Test this function!!!
+            XElement root = new XElement("Feature");
+            root.Add(new XAttribute("Type", this.FeatureType.ToString()));
+            foreach(var p in PastEvals){
+                var label = new XElement("Label", p.Key);
+                label.Add(p.Value.Serialize());
+                root.Add(label);
+            }
+        }
+
         public FeatureSuccess SuccessRate { get; set; }
 
         double? LastEval { get; set; }
 
+        /// <summary>
+        /// Average success over plast 100 trials for each output label
+        /// </summary>
         public double Interestingness {
             get {
+                return 0;
+                if (this.SuccessRate.LabelSuccess.Count() == 0) return 0;
                 //return this.SuccessRate.SuccessRate.Select(i => i.Value.Average()).Max();
-                return this.SuccessRate.LabelSuccess.Select(i => i.Value.LastN()).Average();
+                //return this.SuccessRate.LabelSuccess.Select(i => i.Value.LastN()).Average();
                 //return this.SuccessRate.Overall.LastN();
+                var shortAve = this.SuccessRate.LabelSuccess.Select(i => i.Value.LastN(20)).Average();
+                var longAve = this.SuccessRate.LabelSuccess.Select(i => i.Value.LastN()).Average();
+                if (longAve == 0) return 0;
+                return shortAve / (longAve) ;
             }
         }
 
@@ -73,8 +93,13 @@ namespace PRCommon {
             return true;
         }
 
+        /// <summary>
+        /// Eval variablility
+        /// </summary>
         public double? Attractiveness {
             get {
+                return 0;
+                if (PastEvals.Count() == 0) return 0;
                 //List<double> localVars = new List<double>();
                 List<double> centers = new List<double>();
                 foreach (var a in PastEvals) {
@@ -139,6 +164,11 @@ namespace PRCommon {
                 //if (SuccessRate.SuccessRate.ContainsKey(a.Key)) {
                 //    compareVal *= (SuccessRate.SuccessRate[a.Key].Average() + .10) *  (SuccessRate.LabelSuccess[a.Key].LastN() + .1) * 10;
                 //}
+                /*
+                if (SuccessRate.LabelSuccess.ContainsKey(a.Key) && SuccessRate.LabelSuccess[a.Key].Count() > 1) {
+                    compareVal *= SuccessRate.LabelSuccess[a.Key].LastN2 * 10;
+                }*/
+
                 LabelCertainty[a.Key] = compareVal;
                 totalVal += compareVal;
 
@@ -161,8 +191,6 @@ namespace PRCommon {
 
         public Dictionary<string, PastValues> PastEvals { get; set; }
 
-        private bool onlyTrainOnFailure;
-
         public void Train(string label, int[][] input) {
             if (LastEval == null) {
                 return;
@@ -175,9 +203,9 @@ namespace PRCommon {
             }
 
             if (guess != label) {
-                if (PastEvals.ContainsKey(label)) {
+                if (PastEvals.ContainsKey(label) && PastEvals[label].Count < 10) {
                     PastEvals[label].Add(LastEval.Value);
-                } else {
+                } else if(!PastEvals.ContainsKey(label)) {
                     PastEvals[label] = new PastValues(LastEval.Value);
                 }
             } else {

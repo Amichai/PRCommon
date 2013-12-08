@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace PRCommon {
-    public class PixelProjection : EvalBase, IEvalFunc {
+    public class PixelProjectionVarLength : EvalBase, IEvalFunc {
         public IntPoint? GetPoint() {
             return Points.Take(1).Single();
         }
@@ -13,11 +13,13 @@ namespace PRCommon {
         public List<IntPoint> GetPoints() {
             var pts = Points;
             pts.AddRange(Ref.GetPoints());
-            pts.AddRange(Ref2.GetPoints());
+            foreach (var f in Features) {
+                pts.AddRange(f.Projection.GetPoints());
+            }
             return pts;
         }
 
-        private double randomNormal(double mean, double stdDev) {            
+        private double randomNormal(double mean, double stdDev) {
             double u1 = Rand.NextDouble(); //these are uniform(0,1) random doubles
             double u2 = Rand.NextDouble();
             double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) *
@@ -29,49 +31,37 @@ namespace PRCommon {
 
         public bool GaussianDist { get; set; }
 
-        public PixelProjection(List<IntPoint> points) {
+        public PixelProjectionVarLength(List<IntPoint> points) {
             ///CHeck that all the points are unique and delete duplicates
             this.Points = points;
             if (points.Count() > 1) throw new Exception();
             this.Eval = i => projEval(i, points);
-
-            if (GaussianDist) {
-                this.weight = randomNormal(.5, 1);
-            } else {
-                this.weight = Rand.NextDouble();
-            }
         }
-
-        private double weight;
 
         public int PointCount() {
             throw new NotImplementedException();
         }
 
-        public IEvalFunc Ref2 { get; set; }
+        List<double> weights = new List<double>();
+        public List<Feature> Features { get; set; }
 
         private double projEval(int[][] input, List<IntPoint> pts) {
-            if (pts.Count() > 1) {
-                pts = pts.Take(1).ToList();
+            if (weights.Count() == 0) {
+                foreach (var f in Features) {
+                    weights.Add(randomNormal(1, .5));
+                }
             }
-
+            double refEval;
             double output = 1;
-            foreach (var p in pts) {
-                double refEval;
-                double ref2Eval;
-                if (HashedResults.ContainsKey(Ref.Eval)) {
-                    refEval = HashedResults[Ref.Eval];
+            for (int i = 0; i < this.Features.Count(); i++) {
+                var f = Features[i];
+                if (HashedResults.ContainsKey(f.Projection.Eval)) {
+                    refEval = HashedResults[f.Projection.Eval];
                 } else {
-                    refEval = Ref.Eval(input);
+                    refEval = f.Projection.Eval(input);
                 }
-
-                if (HashedResults.ContainsKey(Ref2.Eval)) {
-                    ref2Eval = HashedResults[Ref2.Eval];
-                } else {
-                    ref2Eval = Ref2.Eval(input);
-                }
-                output = this.weight * refEval -
-                    (1 - this.weight) * ref2Eval;
+                //output *= refEval * (double)f.SuccessRate.Overall.LastN() / successTotal;
+                output *= refEval * this.weights[i];
             }
             HashedResults[Eval] = output;
             return output;

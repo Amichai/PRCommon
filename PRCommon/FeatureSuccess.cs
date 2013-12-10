@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace PRCommon {
     public class FeatureSuccess {
@@ -48,9 +49,7 @@ namespace PRCommon {
                     LabelSuccess[BestGuess].Add(false);
                 }
             }
-
             updateOutcomes(label, probabilities, guess);
-
         }
 
         private void updateOutcomes(string label, Dictionary<string, double> probabilities, string guess) {
@@ -73,6 +72,17 @@ namespace PRCommon {
 
         public PastTrials Overall { get; set; }
         public Dictionary<string, PastTrials> LabelSuccess;
+
+        public XElement ToXml() {
+            XElement root = new XElement("Success");
+            root.Add(new XElement("Overall", this.Overall.ToXml()));
+            XElement labelSuccess = new XElement("LabelSuccess");
+            foreach (var l in this.LabelSuccess) {
+                labelSuccess.Add(new XElement("Label"+ l.Key, l.Value.ToXml()));
+            }
+            root.Add(labelSuccess);
+            return root;
+        }
     }
 
     public class PastTrials {
@@ -143,6 +153,17 @@ namespace PRCommon {
                 return 0;
             }
             return correct / total;
+        }
+
+        internal XElement ToXml() {
+            XElement root = new XElement("PastTrials");
+            root.Add(new XAttribute("TotalSeen", this.total));
+            root.Add(new XAttribute("Last100", this.LastN()));
+            root.Add(new XAttribute("BestProbability", this.monoticity.Max()));
+            root.Add(new XAttribute("RunningGeometric", this.RunningGeometric));
+            root.Add(new XAttribute("RunningExponential", this.RunningExponential));
+            root.Add(new XAttribute("OverallProbability", this.Probability()));
+            return root;
         }
     }
 }
